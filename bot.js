@@ -2,7 +2,7 @@
 // Логика та же, что была в Cloudflare Worker. Запускается через server.js.
 // Env: BOT_TOKEN, WEBHOOK_SECRET, (ADMIN_USERNAME, ADMIN_ID)
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
 const APP_TEMPLATE = readFileSync(new URL("./app.html", import.meta.url), "utf8");
 
@@ -1374,11 +1374,26 @@ async function handleApi(env, request) {
   return jsonRes({ toast, found, ...extra, state: await apiState(env, uid, u, admin, body.t === "market") });
 }
 
+// Реальные фото: кладёшь файл в папку img с именем id модели (например 17pm.png, 14p.webp, acc_apmax.jpg)
+const IMG_RE = /^([a-z0-9_]+)\.(png|jpe?g|webp|svg)$/i;
+const IMG_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" };
+function imgMap() {
+  const m = {};
+  try {
+    for (const f of readdirSync(new URL("./img/", import.meta.url))) {
+      const mm = f.match(IMG_RE);
+      if (mm) m[mm[1].toLowerCase()] = f;
+    }
+  } catch {}
+  return m;
+}
+
 function renderApp() {
   const cr = Object.fromEntries(Object.entries(CRYPTO).map(([k, c]) => [k, [c.base, c.amp, c.k1, c.k2, c.ph]]));
   return APP_TEMPLATE.replace("__P__", () => JSON.stringify(PHONES.map((p) => [p.id, p.name, p.price, p.weight, p.limit])))
     .replace("__A__", () => JSON.stringify(ACCESSORIES.map((p) => [p.id, p.name, p.price])))
-    .replace("__C__", () => JSON.stringify(cr));
+    .replace("__C__", () => JSON.stringify(cr))
+    .replace("__I__", () => JSON.stringify(imgMap()));
 }
 
 // ---------- Точка входа ----------
@@ -1388,6 +1403,18 @@ export default {
     ORIGIN = url.origin;
 
     if (url.pathname === "/health") return new Response("ok");
+
+    if (url.pathname.startsWith("/img/")) {
+      const f = url.pathname.slice(5);
+      const mm = f.match(IMG_RE);
+      if (!mm) return new Response("not found", { status: 404 });
+      try {
+        const buf = readFileSync(new URL("./img/" + f, import.meta.url));
+        return new Response(buf, { headers: { "content-type": IMG_TYPES[mm[2].toLowerCase()], "cache-control": "public, max-age=3600" } });
+      } catch {
+        return new Response("not found", { status: 404 });
+      }
+    }
 
     if (url.pathname === "/app") {
       return new Response(renderApp(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
