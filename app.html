@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Найди айфон</title>
+<style>
+/* ===== Liquid Glass ===== */
+:root{
+  --bg:#dde5f6;--ink:#0f1b3a;--mut:#56627f;--acc:#2f6bff;--ok:#12a150;--bad:#e11d48;
+  --sur:rgba(255,255,255,.40);--sur2:rgba(255,255,255,.34);--line:rgba(110,130,185,.22);
+  --glass-brd:rgba(255,255,255,.65);--glass-hi:rgba(255,255,255,.85);--glass-lo:rgba(255,255,255,.10);
+  --glass-shadow:0 10px 34px -10px rgba(30,50,110,.28);
+  --blur:blur(22px) saturate(180%);
+  --b1:#7aa7ff;--b2:#ff9ad5;--b3:#7be3c6;--b4:#ffd480;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#080d1c;--ink:#eaf0ff;--mut:#9aa6c6;--acc:#7c93ff;
+  --sur:rgba(30,40,72,.46);--sur2:rgba(60,76,125,.38);--line:rgba(150,170,230,.18);
+  --glass-brd:rgba(255,255,255,.16);--glass-hi:rgba(255,255,255,.28);--glass-lo:rgba(255,255,255,.04);
+  --glass-shadow:0 12px 36px -12px rgba(0,0,0,.65);
+  --b1:#2f4fd8;--b2:#a0266f;--b3:#12806a;--b4:#9a6a14}}
+:root[data-theme="dark"]{
+  --bg:#080d1c;--ink:#eaf0ff;--mut:#9aa6c6;--acc:#7c93ff;
+  --sur:rgba(30,40,72,.46);--sur2:rgba(60,76,125,.38);--line:rgba(150,170,230,.18);
+  --glass-brd:rgba(255,255,255,.16);--glass-hi:rgba(255,255,255,.28);--glass-lo:rgba(255,255,255,.04);
+  --glass-shadow:0 12px 36px -12px rgba(0,0,0,.65);
+  --b1:#2f4fd8;--b2:#a0266f;--b3:#12806a;--b4:#9a6a14}
+html,body{height:100%}
+html,body,button,input,select,.tab{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+button,.tab,.row,.seg{-webkit-user-select:none;user-select:none}
+input,select{font-size:16px}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+/* цветной фон, сквозь который стекло преломляет свет */
+body::before{content:"";position:fixed;inset:-25%;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(38% 30% at 18% 14%,var(--b1) 0,transparent 70%),
+    radial-gradient(34% 28% at 86% 24%,var(--b2) 0,transparent 70%),
+    radial-gradient(42% 34% at 72% 88%,var(--b3) 0,transparent 70%),
+    radial-gradient(36% 30% at 8% 84%,var(--b4) 0,transparent 70%);
+  filter:blur(26px);opacity:.85;animation:float 22s ease-in-out infinite alternate}
+@keyframes float{to{transform:translate3d(3%,2%,0) scale(1.06)}}
+.app{max-width:440px;margin:0 auto;padding:16px 16px 118px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.brand{font:700 16px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:-.02em}
+h2{font:700 24px/1.15 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:-.03em;margin:4px 0 14px}
+
+/* общий материал стекла */
+.card,.seg,.tabs,.bal,.reel,#toast,.btn.g,input,select{
+  background:var(--sur);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid var(--glass-brd);
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi),inset 0 -1px 0 var(--glass-lo)}
+.card{position:relative;border-radius:26px;padding:16px;margin-bottom:12px;overflow:hidden}
+/* блик по верхнему краю */
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(160deg,var(--glass-hi) 0,transparent 38%,transparent 70%,var(--glass-lo) 100%);opacity:.45}
+.card>*{position:relative}
+.bal{color:var(--ink);border-radius:99px;padding:8px 15px;font:700 14px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .n{flex:1;min-width:0}.row b{display:block;font-weight:700}
+.row small,.mut{color:var(--mut);font-size:13px}
+
+.btn{border:1px solid rgba(255,255,255,.35);background:linear-gradient(180deg,rgba(120,155,255,.98),rgba(47,107,255,.9));color:#fff;
+  font:700 13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:9px 14px;border-radius:14px;cursor:pointer;
+  box-shadow:0 8px 20px -8px var(--acc),inset 0 1px 0 rgba(255,255,255,.55);transition:transform .15s,filter .15s}
+.btn:active{transform:scale(.96);filter:brightness(1.08)}
+.btn.g{color:var(--ink);background:var(--sur2)}
+.btn:disabled{opacity:.4}
+.btn:focus-visible,.tab:focus-visible,.seg button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+
+.seg{display:flex;border-radius:18px;padding:4px;margin-bottom:14px;gap:2px}
+.seg button{flex:1;border:0;background:none;color:var(--mut);font:700 13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:9px;border-radius:14px;cursor:pointer;transition:background .2s,color .2s}
+.seg button.on{background:linear-gradient(180deg,var(--glass-hi),var(--sur));color:var(--ink);
+  box-shadow:0 2px 8px rgba(20,30,70,.18),inset 0 1px 0 var(--glass-hi)}
+
+.tabs{position:fixed;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);width:min(420px,calc(100% - 24px));box-sizing:border-box;display:flex;gap:2px;border-radius:999px;padding:7px;z-index:4}
+.tab{flex:1;border:0;background:none;color:var(--mut);font:700 11px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:grid;gap:2px;justify-items:center;padding:7px 0;cursor:pointer;border-radius:999px;transition:background .2s,color .2s}
+.tab span{font-size:20px}
+.tab.on{color:var(--acc);background:linear-gradient(180deg,var(--glass-hi),var(--sur2));box-shadow:inset 0 1px 0 var(--glass-hi),0 2px 10px rgba(20,30,70,.18)}
+
+/* телефон из CSS */
+.ph{--c1:#94a3b8;--c2:#cbd5e1;width:92px;height:180px;border-radius:24px;position:relative;flex:none;background:linear-gradient(145deg,var(--c1),var(--c2));box-shadow:inset 0 0 0 3px rgba(255,255,255,.4),0 18px 28px -14px var(--c1)}
+.ph::before{content:"";position:absolute;top:10px;left:10px;width:44px;height:44px;border-radius:14px;background:rgba(0,0,0,.28)}
+.ph::after{content:"";position:absolute;top:17px;left:17px;width:12px;height:12px;border-radius:50%;background:#0b1020;box-shadow:17px 0 #0b1020,0 17px #0b1020,17px 17px #0b1020}
+.leg{--c1:#f59e0b;--c2:#fde68a}.myth{--c1:#be123c;--c2:#fb7185}.lim{--c1:#ec4899;--c2:#fcd34d}.epi{--c1:#7c3aed;--c2:#c4b5fd}.rar{--c1:#0284c7;--c2:#7dd3fc}
+.mini{width:30px;height:56px;border-radius:9px}.mini::before{top:4px;left:4px;width:14px;height:14px;border-radius:5px}.mini::after{top:6px;left:6px;width:4px;height:4px;box-shadow:6px 0 #0b1020,0 6px #0b1020,6px 6px #0b1020}
+.acc{width:30px;height:56px;border-radius:14px;background:var(--sur2);display:grid;place-items:center;font-size:22px;flex:none}
+.tag{display:inline-block;font:700 11px system-ui,sans-serif;padding:2px 8px;border-radius:99px;background:var(--sur2);color:var(--mut);border:1px solid var(--glass-brd)}
+
+.reel{position:relative;overflow:hidden;border-radius:28px;padding:18px 0;margin-bottom:14px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)}
+.reel::after{content:"";position:absolute;left:50%;top:8px;bottom:8px;width:80px;transform:translateX(-50%);border:2px solid var(--glass-hi);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.04));box-shadow:0 0 24px -4px var(--acc);pointer-events:none}
+.strip{display:flex;width:max-content;animation:slide 26s linear infinite}
+.reel.fast .strip{animation-duration:1.5s}
+@keyframes slide{to{transform:translateX(-50%)}}
+.rp{display:block;width:64px;height:124px;border-radius:18px;margin-right:16px}
+.rp::before{top:7px;left:7px;width:30px;height:30px;border-radius:10px}
+.rp::after{top:11px;left:11px;width:8px;height:8px;box-shadow:12px 0 #0b1020,0 12px #0b1020,12px 12px #0b1020}
+.btn.go{width:100%;padding:17px;font:700 15px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;border-radius:20px;margin-bottom:12px;box-shadow:0 16px 30px -12px var(--acc),inset 0 1px 0 rgba(255,255,255,.6)}
+.found{display:flex;gap:16px;align-items:center;animation:drop .5s cubic-bezier(.2,1.3,.4,1)}
+@keyframes drop{from{transform:translateY(-24px) scale(.9);opacity:0}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.big{font:700 26px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:-.03em}
+input,select{width:100%;box-sizing:border-box;color:var(--ink);border-radius:14px;padding:11px;font:600 14px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin-bottom:8px;box-shadow:inset 0 1px 3px rgba(20,30,70,.12)}
+.up{color:var(--ok)}.dn{color:var(--bad)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+#toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translate(-50%,-90px);color:var(--ink);padding:10px 18px;border-radius:99px;font-weight:700;transition:transform .25s;z-index:5;max-width:90%}
+#toast.on{transform:translate(-50%,0)}
+.ctl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px}
+.ctl small{display:block;font:700 10px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.06em;color:var(--mut);margin:0 0 4px 6px}
+.ctl .seg{margin:0;padding:3px}
+.ctl .seg button{padding:7px 2px;font-size:12px;white-space:nowrap}
+
+/* без поддержки blur или при «уменьшить прозрачность» — плотный фон */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root{--sur:rgba(255,255,255,.92);--sur2:#eef2fa}
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--sur:#171f36;--sur2:#1f2944}}
+  :root[data-theme="dark"]{--sur:#171f36;--sur2:#1f2944}}
+@media(prefers-reduced-transparency:reduce){
+  .card,.seg,.tabs,.bal,.reel,#toast,.btn.g,input,select{-webkit-backdrop-filter:none;backdrop-filter:none}
+  :root{--sur:rgba(255,255,255,.94);--sur2:#eef2fa}
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--sur:#171f36;--sur2:#1f2944}}
+  :root[data-theme="dark"]{--sur:#171f36;--sur2:#1f2944}}
+</style>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<div class="app">
+  <div class="top"><div class="brand">Найди айфон</div><div style="display:flex;gap:8px;align-items:center"><div class="bal" id="bal"></div><button class="btn g" style="padding:8px 12px" data-a="tab|profile">👤</button></div></div>
+  <main id="view"></main>
+</div>
+<nav class="tabs" id="tabs"></nav>
+<div id="toast" role="status"></div>
+<script>
+const P=__P__;const A=__A__;
+const ALL={};P.forEach(([id,name,price,w,l])=>ALL[id]={id,name,price,w,l});A.forEach(([id,name,price])=>ALL[id]={id,name,price,acc:1});
+const CR=__C__;
+const cp=(s,t=Date.now())=>{const[b,a,k1,k2,ph]=CR[s],n=Math.floor(t/3e5),f=(Math.sin(n/k1+ph)+.6*Math.sin(n/k2+ph*2))/1.6;return Math.max(1,Math.round(b*(1+a*f)*100)/100)};
+const rar=p=>p.l?["lim","Лимитка"]:p.price>=180000?["myth","Мифик"]:p.price>=100000?["leg","Легенда"]:p.price>=40000?["epi","Эпик"]:p.price>=10000?["rar","Редкий"]:["","Обычный"];
+const num=n=>Math.floor(n).toLocaleString("ru-RU");
+const sp=p=>Math.floor(p.price/2);
+let S={coins:0,bank:0,inv:{},cr:{},last:0,mk:[],tab:"find",sh:"p",iv:"p",found:null,admin:0,skew:0,ready:0,locked:0,duoLeft:0,duoMax:0,cost1:6300,mult:1,spd:1,psub:"me",tsub:"rich",top:null,promos:[],safe:{},ivsub:"items"};
+const TG=window.Telegram&&Telegram.WebApp;if(TG){TG.ready();TG.expand()}
+const $=id=>document.getElementById(id);
+let tt;const toast=m=>{const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2000)};
+const art=p=>p.acc?`<div class="acc">${p.id==="acc_apmax"?"🎧":"📱"}</div>`:`<div class="ph mini ${rar(p)[0]}"></div>`;
+const seg=(key,v)=>`<div class="seg"><button class="${v==="p"?"on":""}" data-a="set|${key}|p">📱 Телефоны</button><button class="${v==="a"?"on":""}" data-a="set|${key}|a">🎧 Аксессуары</button></div>`;
+const list=(t,s)=>t==="a"?A.map(a=>ALL[a[0]]):P.filter(a=>!(s&&a[4])).map(a=>ALL[a[0]]);
+
+const REEL=["","rar","epi","","leg","rar","","epi","","rar","lim",""];
+const reelHtml=()=>`<div class="reel${S.rev?" fast":""}" id="reel"><div class="strip" style="animation-duration:${S.rev?(1.5/S.spd).toFixed(2):26}s">${REEL.concat(REEL).map(c=>`<i class="ph rp ${c}"></i>`).join("")}</div></div>`;
+const revDelay=L=>(L.length>50?25:L.length>5?450:800)/S.spd;
+let rvT=null;
+// открытие карточек без фиксированного таймера: темп задаёт скорость (x1 / x5 / x10)
+function startReveal(){clearTimeout(rvT);const rv=S.rev;if(!rv)return;
+ const step=()=>{if(S.rev!==rv)return;rv.k++;
+  if(rv.k>=rv.list.length){S.rev=null;render();if(rv.list.some(p=>p.l))toast("🔥 ЛИМИТКА!");else if(rv.list.some(p=>rar(p)[0]==="myth"))toast("💎 МИФИК!");return}
+  rvT=setTimeout(step,revDelay(rv.list))};
+ rvT=setTimeout(step,revDelay(rv.list)*1.5)}
+function finishReveal(){clearTimeout(rvT);S.rev=null;render()}
+function revHtml(){const rv=S.rev,L=rv.list,k=rv.k||0;let h;
+ if(k===0){const p=P[Math.floor(Math.random()*P.length)];h=`<div class="card found" style="animation:none"><div class="ph ${["","rar","epi","leg"][Math.floor(Date.now()/110)%4]}"></div><div><div class="big">${p[1]}</div><div class="mut">Крутим…</div></div></div>`}
+ else h=`<div class="card">${L.slice(0,k).map(p=>`<div class="row found">${art(p)}<div class="n"><b>${p.name}</b><small>${rar(p)[1]}</small></div></div>`).join("")}${k<L.length?`<div class="row mut">🎰 крутится…</div>`:""}</div>`;
+ return h+`<button class="btn g" style="width:100%" data-a="skip">⏩ Пропустить</button>`}
+setInterval(()=>{const rv=S.rev;if(!rv||S.tab!=="find"||!$("res"))return;$("res").innerHTML=revHtml();const rl=$("reel");if(rl)rl.className="reel fast"},120);
+function ivSub(){const used=Object.values(S.safe||{}).reduce((s,n)=>s+n,0);return `<div class="seg"><button class="${S.ivsub==="items"?"on":""}" data-a="set|ivsub|items">🎒 Вещи</button><button class="${S.ivsub==="safe"?"on":""}" data-a="set|ivsub|safe">🔐 Сейф · ${used}/10</button></div>`}
+function safeCard(){const sf=S.safe||{},ids=Object.keys(sf).filter(k=>sf[k]>0&&ALL[k]),used=ids.reduce((s,k)=>s+sf[k],0);
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>🔐 Сейф</b><span class="tag">${used}/10</span></div><div class="mut" style="margin:4px 0 6px">Вещи в сейфе нельзя продать или выставить на Авито, пока не вынешь.</div>${ids.map(k=>`<div class="row">${art(ALL[k])}<div class="n"><b>${ALL[k].name} × ${sf[k]}</b></div><button class="btn g" data-a="safeout|${k}">Вынуть</button></div>`).join("")||'<span class="mut">Пусто.</span>'}</div>`}
+const V={
+find(){const f=S.found||[];
+const sum=f.filter(p=>!p.l).reduce((s,p)=>s+sp(p),0);
+let res;
+if(S.rev)res=`<div id="res">${revHtml()}</div>`;
+else if(f.length===1)res=`<div class="card found"><div class="ph ${rar(f[0])[0]}"></div><div><span class="tag">${rar(f[0])[1]}</span><div class="big" style="margin:6px 0">${f[0].name}</div><div class="mut">Цена ${num(f[0].price)} ₽<br>Продажа ${num(sp(f[0]))} ₽</div></div></div>`;
+else if(f.length)res=`<div class="card">${f.slice(0,40).map(p=>`<div class="row found">${art(p)}<div class="n"><b>${p.name}</b><small>${rar(p)[1]} · продажа ${num(sp(p))} ₽</small></div></div>`).join("")}${f.length>40?`<p class="mut" style="text-align:center">…и ещё ${f.length-40}</p>`:""}</div>`;
+else res=`<p class="mut" style="text-align:center">Выбери x1, x5 или x10 и крути.${S.admin?"<br>Ты админ: крутки бесплатные.":""}</p>`;
+const n=S.mult,cost=S.cost1*n,can=S.admin||S.coins>=cost;
+return `<h2>Крутка</h2><div class="ctl"><div><small>КОЛИЧЕСТВО</small>${S.admin?`<input id="cnt" type="number" min="1" max="500" placeholder="своё, до 500" value="${[1,5,10].includes(S.mult)?"":S.mult}" style="margin:0 0 6px;padding:7px 9px;font-size:13px">`:""}<div class="seg">${[1,5,10].map(m=>`<button class="${S.mult===m?"on":""}" data-a="mult|${m}">x${m}</button>`).join("")}</div></div><div><small>СКОРОСТЬ</small><div class="seg">${[1,5,10].map(m=>`<button class="${S.spd===m?"on":""}" data-a="spd|${m}">${m===1?"🐢":m===5?"⚡":"🚀"} x${m}</button>`).join("")}</div></div></div>${reelHtml()}
+<button class="btn go" data-a="spin|${n}" ${can&&!S.rev?"":"disabled"}>🎰 Крутить x${n} · ${S.admin?"бесплатно":num(cost)+" ₽"}</button>
+<div class="card" style="display:flex;justify-content:space-between;align-items:center"><span>🔥 Лимитка iPhone Duo · ${num(ALL.duo.price)} ₽</span><b>${S.duoLeft}/${S.duoMax}</b></div>
+${res}
+${!S.rev&&sum>0?`<button class="btn" style="width:100%;padding:13px;margin:4px 0 12px" data-a="sellspin">💸 Продать всё выпавшее (+${num(sum)} ₽)</button>`:""}
+${S.admin?`<button class="btn g" style="width:100%" data-a="adm">👑 +100 000 ₽ себе</button>`:""}`},
+shop(){return `<h2>Магазин</h2>${seg("sh",S.sh)}<div class="card">${list(S.sh,1).map(p=>`<div class="row">${art(p)}<div class="n"><b>${p.name}</b><small>${num(p.price)} ₽</small></div><button class="btn" data-a="buy|${p.id}" ${S.coins<p.price?"disabled":""}>Купить</button></div>`).join("")}</div>`},
+inv(){const o=list(S.iv).filter(p=>S.inv[p.id]>0),tot=o.reduce((s,p)=>s+sp(p)*S.inv[p.id],0);
+if(S.ivsub==="safe")return `<h2>Инвентарь</h2>${ivSub()}${safeCard()}`;
+return `<h2>Инвентарь</h2>${ivSub()}${seg("iv",S.iv)}`+(o.length?`<div class="card">${o.map(p=>`<div class="row">${art(p)}<div class="n"><b>${p.name} × ${S.inv[p.id]}</b><small>Продажа ${num(sp(p))} ₽</small></div><button class="btn g" data-a="safein|${p.id}">🔐</button><button class="btn g" data-a="sell|${p.id}">Продать</button></div>`).join("")}</div><button class="btn" style="width:100%;padding:13px" data-a="sellall|${S.iv}">Продать всё за ${num(tot)} ₽</button>`:`<div class="card mut">Здесь пока пусто.</div>`)},
+bank(){const cv=Object.keys(CR).reduce((s,k)=>s+(S.cr[k]||0)*cp(k),0);
+return `<h2>Банк</h2><div class="card"><div class="mut">На счёте · +0,5% в час</div><div class="big">${num(S.bank)} ₽</div><div class="acts" style="margin-top:12px"><button class="btn" data-a="dep|10000">+10 000</button><button class="btn" data-a="dep|all">Внести всё</button><button class="btn g" data-a="wd|10000">−10 000</button><button class="btn g" data-a="wd|all">Снять всё</button></div></div>
+<div class="card"><b>Перевод игроку</b><div class="mut" style="margin:2px 0 10px">С денег на руках. Игрок должен уже играть в бота.</div><input id="pto" placeholder="@username или ID"><input id="pam" type="number" min="1" placeholder="Сумма, ₽"><button class="btn" data-a="pay">Перевести</button></div>
+<h2 style="font-size:18px">Крипта <span class="mut" style="font:500 13px system-ui,sans-serif">≈ ${num(cv)} ₽ · комиссия 2%</span></h2><div class="card">${Object.keys(CR).map(k=>{const p=cp(k),pr=cp(k,Date.now()-3e5),h=S.cr[k]||0;return `<div class="row"><div class="n"><b>${k} <span class="${p>=pr?"up":"dn"}">${p>=pr?"▲":"▼"} ${p}</span></b><small>у тебя ${h.toFixed(4)}</small></div><button class="btn" data-a="cb|${k}|10000">Купить 10 000</button><button class="btn g" data-a="cs|${k}">Продать</button></div>`}).join("")}</div>`},
+market(){const mine=Object.keys(S.inv).filter(k=>S.inv[k]>0&&ALL[k]&&!ALL[k].acc);
+return `<h2>Авито</h2><div class="card">${S.mk.length?S.mk.map(m=>{const p=ALL[m.p];if(!p)return"";return `<div class="row">${art(p)}<div class="n"><b>${p.name}</b><small>${m.own?"твой лот":"@"+m.s} · ${num(m.price)} ₽</small></div>${m.own?`<button class="btn g" data-a="mc|${m.id}">Снять</button>`:`<button class="btn" data-a="mb|${m.id}" ${S.coins<m.price?"disabled":""}>Купить</button>`}</div>`}).join(""):`<span class="mut">Лотов нет.</span>`}</div>
+<div class="card"><b>Выставить телефон</b><div class="mut" style="margin:2px 0 10px">Комиссия 5% с продавца</div>${mine.length?`<select id="msel">${mine.map(k=>`<option value="${k}">${ALL[k].name} × ${S.inv[k]}</option>`).join("")}</select><input id="mpr" type="number" min="1" placeholder="Цена, ₽"><button class="btn" data-a="mlist">Выставить</button>`:`<span class="mut">У тебя нет телефонов.</span>`}</div>`}
+,
+profile(){
+ const inv=Object.keys(S.inv).filter(k=>S.inv[k]>0&&ALL[k]);
+ const invVal=inv.reduce((s,k)=>s+sp(ALL[k])*S.inv[k],0);
+ const crVal=Object.keys(CR).reduce((s,k)=>s+(S.cr[k]||0)*cp(k),0);
+ const total=S.coins+S.bank+crVal+invVal;
+ const subs=`<div class="seg"><button class="${S.psub==="me"?"on":""}" data-a="set|psub|me">👤 Профиль</button><button class="${S.psub==="top"?"on":""}" data-a="set|psub|top">🏆 Топы</button></div>`;
+ if(S.psub==="top"){
+  const t=S.top;
+  if(!t)return `<h2>Профиль</h2>${subs}<p class="mut">Загружаю топы…</p>`;
+  const coll=S.tsub==="coll";
+  const list=coll?t.coll:t.rich;
+  const rows=list.map((r,i)=>`<div class="row"><b style="width:28px;color:var(--mut)">${i+1}</b><div class="n"><b>${r.n}${r.me?` <span class="tag">ты</span>`:""}</b><small>${coll?"лимитки, легенды и мифики":"капитал"}</small></div><b>${coll?num(r.c)+" шт.":num(r.v)+" ₽"}</b></div>`).join("");
+  const my=coll?t.me.coll:t.me.rich;
+  return `<h2>Профиль</h2>${subs}<div class="seg"><button class="${coll?"":"on"}" data-a="set|tsub|rich">💰 Богатейшие</button><button class="${coll?"on":""}" data-a="set|tsub|coll">💎 Коллекционеры</button></div><div class="card">${rows||'<span class="mut">Пока пусто.</span>'}</div><p class="mut" style="text-align:center">${my?`Твоё место: #${my}`:"Тебя пока нет в этом топе"}</p>`;
+ }
+ const best=inv.filter(k=>!ALL[k].acc).sort((a,b)=>ALL[b].price-ALL[a].price)[0];
+ return `<h2>Профиль</h2>${subs}<div class="card"><div class="mut">Итого</div><div class="big">${num(total)} ₽</div></div>`+
+  `<div class="card">${[["💰 На руках",S.coins],["🏦 В банке",S.bank],["🪙 В крипте",crVal],["🎒 Вещи (по продаже)",invVal]].map(([t,v])=>`<div class="row"><div class="n"><b>${t}</b></div><b>${num(v)} ₽</b></div>`).join("")}</div>`+
+  (best?`<div class="card"><div class="mut" style="margin-bottom:8px">Самая дорогая вещь</div><div class="row" style="border:0;padding:0">${art(ALL[best])}<div class="n"><b>${ALL[best].name}</b><small>${rar(ALL[best])[1]}</small></div></div></div>`:"")+
+  `<div class="card"><b>🎟 Промокод</b><div class="mut" style="margin:2px 0 10px">Введи код и получи бонус. Каждый код работает один раз.</div><input id="promo" placeholder="Код, например SUMMER"><button class="btn" data-a="promo">Активировать</button></div>`+`<div class="card"><b>📢 Канал игры</b><div class="mut" style="margin:2px 0 10px">Новости, розыгрыши и лимитки первыми.</div><button class="btn" data-a="chan">Открыть t.me/iPhoneNewsGame</button></div>`+(S.admin?`<div class="card"><b>👑 Админ-панель</b><div class="mut" style="margin:2px 0 10px">У тебя повышенные шансы на эпики, легендарки и мифики.</div>
+<b style="font-size:13px">Баланс себе</b><div class="acts" style="margin:6px 0 12px"><button class="btn g" data-a="admset|1000">1к</button><button class="btn g" data-a="admset|50000">50к</button><button class="btn g" data-a="admset|100000">100к</button><button class="btn g" data-a="admset|1000000">1млн</button><button class="btn g" data-a="admset|1000000000">1млрд</button></div><button class="btn" data-a="admduo" style="width:100%;margin-bottom:12px">🔥 Выдать себе iPhone Duo</button>
+<hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+<b style="font-size:13px">Выдать деньги</b><input id="atg" placeholder="@username или ID"><input id="aam" type="number" min="1" placeholder="Сумма, ₽"><button class="btn" data-a="admgive">Выдать</button>
+<hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+<b style="font-size:13px">Создать промокод</b><input id="acd" placeholder="Код, например VIP2026"><input id="asm" type="number" min="1" placeholder="Сумма, ₽"><input id="aus" type="number" min="1" placeholder="Сколько раз можно активировать"><input id="ady" type="number" min="0" placeholder="Дней (0 — без срока)"><button class="btn" data-a="admpromo">Создать</button>
+<hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+<b style="font-size:13px">Промокоды (${(S.promos||[]).length})</b>${(S.promos||[]).map(p=>`<div class="row"><div class="n"><b>${p.code}</b><small>+${num(p.c)} ₽ · осталось ${p.left}${p.exp?" · до "+new Date(p.exp).toLocaleDateString("ru-RU"):" · без срока"}</small></div><button class="btn g" data-a="admpdel|${p.code}">Удалить</button></div>`).join("")||'<span class="mut">Пока нет.</span>'}</div>`:"")
+}
+};
+const TABS=[["find","🎰","Крутка"],["shop","🏪","Магазин"],["inv","🎒","Вещи"],["bank","🏦","Банк"],["market","🛒","Авито"]];
+function render(){
+  $("bal").textContent=S.ready?num(S.coins)+" ₽":"";
+  if(S.locked){$("tabs").innerHTML="";$("view").innerHTML=`<div class="card"><h2>Открой через Telegram</h2><p class="mut">Приложение работает только внутри бота. Нажми «Играть» рядом со скрепкой в чате.</p></div>`;return}
+  if(!S.ready){$("view").innerHTML=`<p class="mut">Загрузка…</p>`;return}
+  $("view").innerHTML=V[S.tab]();
+  $("tabs").innerHTML=TABS.map(([k,i,n])=>`<button class="tab ${S.tab===k?"on":""}" data-a="tab|${k}"><span>${i}</span>${n}</button>`).join("")}
+let busy=0;
+async function api(a,x,y,z,w){
+  if(busy)return;busy=1;
+  try{
+    const r=await fetch("/api",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({initData:TG?TG.initData:"",a,x,y,z,w,t:S.tab})});
+    if(r.status===401){S.locked=1}else{
+      const d=await r.json();
+      if(d.state){Object.assign(S,d.state);S.skew=d.state.now-Date.now();S.ready=1}
+      if(d.top)S.top=d.top;if(d.found){S.found=d.found.map(id=>ALL[id]);S.rev={list:S.found,k:0};startReveal()}
+      if(a==="sellspin"){S.found=null;S.rev=null}
+      if(d.toast)toast(d.toast)}
+  }catch(e){toast("Нет связи с сервером")}
+  busy=0;render()}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-a]");if(!t)return;const[a,x,y]=t.dataset.a.split("|");
+  if(a==="skip"){finishReveal();return}
+  if(a==="spin"&&S.rev)return;
+  if(a==="tab"){S.tab=x;render();api(x==="profile"&&S.psub==="top"?"top":"state")}
+  else if(a==="set"){S[x]=y;render();if(x==="psub"&&y==="top")api("top")}
+  else if(a==="mult"){S.mult=+x;render()}
+  else if(a==="spd"){S.spd=+x;render()}
+  else if(a==="mlist")api("mlist",$("msel").value,$("mpr").value);
+  else if(a==="chan"){const L="https://t.me/iPhoneNewsGame";TG&&TG.openTelegramLink?TG.openTelegramLink(L):window.open(L,"_blank")}
+  else if(a==="promo")api("promo",$("promo").value.trim());
+  else if(a==="admgive")api("admgive",$("atg").value.trim(),$("aam").value);
+  else if(a==="admpromo")api("admpromo",$("acd").value.trim(),$("asm").value,$("aus").value,$("ady").value);
+  else if(a==="pay")api("pay",$("pto").value.trim(),$("pam").value);
+  else api(a,x,y)});
+document.addEventListener('gesturestart',e=>e.preventDefault());document.addEventListener('gesturechange',e=>e.preventDefault());let lt=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lt<350&&!e.target.closest('button,input,select,textarea'))e.preventDefault();lt=n},{passive:false});
+document.addEventListener("change",e=>{if(e.target.id==="cnt"){const v=Math.floor(+e.target.value);if(v>=1){S.mult=Math.min(500,v);render()}}});
+render();api("state");
+</script>
+</body>
+</html>
