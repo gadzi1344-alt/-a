@@ -119,6 +119,15 @@ input,select{width:100%;box-sizing:border-box;color:var(--ink);border-radius:14p
 .ctl .seg{margin:0;padding:3px}
 .ctl .seg button{padding:7px 2px;font-size:12px;white-space:nowrap}
 .cico{display:inline-block;vertical-align:-5px;margin-right:6px}
+.av{position:relative;display:inline-grid;place-items:center;flex:none;border-radius:50%;overflow:hidden;color:#fff;font-weight:700;background:linear-gradient(135deg,#6f87ff,#ff8fd0);border:2px solid var(--glass-brd);box-shadow:0 6px 16px -6px rgba(30,50,110,.45)}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#profbtn{padding:4px!important;border-radius:99px}
+.packs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pack{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:13px 4px;border-radius:18px;border:1px solid var(--glass-brd);background:var(--sur2);color:var(--ink);cursor:pointer;font:inherit;box-shadow:inset 0 1px 0 var(--glass-hi)}
+.pack b{display:flex;align-items:center;gap:4px;font:700 16px system-ui,sans-serif}
+.pack small{color:var(--mut);font-size:12px}
+.pack .bn{position:absolute;top:-8px;right:6px;font:700 10px system-ui,sans-serif;background:var(--acc);color:#fff;padding:2px 7px;border-radius:99px}
+.pack:active{transform:scale(.96)}
 
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   :root{--sur:rgba(255,255,255,.92);--sur2:#eef2fa}
@@ -171,7 +180,11 @@ phone:'<rect x="7" y="2.5" width="10" height="19" rx="2.6"/><path d="M10.5 5.2h3
 headphones:'<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><path d="M4 15h3.5v5H5.5A1.5 1.5 0 0 1 4 18.5zM20 15h-3.5v5h2a1.5 1.5 0 0 0 1.5-1.5z"/>',
 up:'<path d="M6 15l6-6 6 6"/>',
 down:'<path d="M6 9l6 6 6-6"/>',
-bolt:'<path d="M13 2L5 14h6l-1 8 8-12h-6z"/>'
+bolt:'<path d="M13 2L5 14h6l-1 8 8-12h-6z"/>',
+users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.6"/><path d="M17 14.2c2.7 0 4.5 1.8 4.5 4.8"/>',
+copy:'<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
+gift:'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12"/><path d="M12 8c-2.6 0-4-1.1-4-2.6S9.4 3 12 8zM12 8c2.6 0 4-1.1 4-2.6S14.6 3 12 8z"/>',
+star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'
 };
 const ic=(n,s=18)=>`<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]||""}</svg>`;
 const CCOL={BTC:["#f7931a","₿"],ETH:["#627eea","Ξ"],TON:["#0098ea","T"]};
@@ -249,9 +262,12 @@ const art=p=>phone(p,"mini");
 const tag=p=>{const r=rar(p);return `<span class="tag"><i class="dot" style="background:${RC[r[0]][0]}"></i>${r[1]}</span>`};
 
 const num=n=>Math.floor(n).toLocaleString("ru-RU");
-const sp=p=>Math.floor(p.price/2);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const starIco=(s=16)=>`<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.5 1.1 6.3L12 17.3l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z" fill="#f5b301" stroke="#c98a00" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+const av=(m,s)=>{m=m||{};const ch=(String(m.name||"?").replace(/^@/,"").trim().charAt(0)||"?").toUpperCase();return `<span class="av" style="width:${s}px;height:${s}px;font-size:${Math.round(s*.42)}px">${esc(ch)}${m.photo?`<img src="${esc(m.photo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span>`};
+const sp=p=>Math.floor(p.price*S.sell);
 const cp=(s,t=Date.now())=>{const[b,a,k1,k2,ph]=CR[s],n=Math.floor(t/3e5),f=(Math.sin(n/k1+ph)+.6*Math.sin(n/k2+ph*2))/1.6;return Math.max(1,Math.round(b*(1+a*f)*100)/100)};
-let S={coins:0,bank:0,inv:{},cr:{},last:0,mk:[],tab:"find",sh:"p",iv:"p",found:null,admin:0,skew:0,ready:0,locked:0,duoLeft:0,duoMax:0,cost1:6300,mult:1,spd:1,psub:"me",tsub:"rich",top:null,promos:[],safe:{},ivsub:"items"};
+let S={coins:0,bank:0,inv:{},cr:{},last:0,mk:[],tab:"find",sh:"p",iv:"p",found:null,admin:0,skew:0,ready:0,locked:0,duoLeft:0,duoMax:0,cost1:6300,mult:1,spd:1,psub:"me",top:null,sell:.55,rate:.006,me:null,ref:null,daily:{wait:0,streak:0,amt:0},dailyAt:0,packs:[],promos:[],safe:{},ivsub:"items"};
 const TG=window.Telegram&&Telegram.WebApp;if(TG){TG.ready();TG.expand()}
 const $=id=>document.getElementById(id);
 let tt;const toast=m=>{const t=$("toast");t.textContent=String(m).replace(/[\p{Extended_Pictographic}️‍]/gu,"").trim();t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2000)};
@@ -278,6 +294,11 @@ setInterval(()=>{const rv=S.rev;if(!rv||S.tab!=="find"||!$("res"))return;
 function ivSub(){const used=Object.values(S.safe||{}).reduce((s,n)=>s+n,0);return `<div class="seg"><button class="${S.ivsub==="items"?"on":""}" data-a="set|ivsub|items">${ic("box",16)}Вещи</button><button class="${S.ivsub==="safe"?"on":""}" data-a="set|ivsub|safe">${ic("lock",16)}Сейф · ${used}/10</button></div>`}
 function safeCard(){const sf=S.safe||{},ids=Object.keys(sf).filter(k=>sf[k]>0&&ALL[k]),used=ids.reduce((s,k)=>s+sf[k],0);
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><span class="ttl">${ic("lock")}Сейф</span><span class="tag">${used}/10</span></div><div class="mut" style="margin:4px 0 6px">Вещи в сейфе нельзя продать или выставить на Авито, пока не вынешь.</div>${ids.map(k=>`<div class="row">${art(ALL[k])}<div class="n"><b>${ALL[k].name} × ${sf[k]}</b></div><button class="btn g" data-a="safeout|${k}">Вынуть</button></div>`).join("")||'<span class="mut">Пусто.</span>'}</div>`}
+const dailyReady=()=>Date.now()>=S.dailyAt;
+const dLeft=()=>{const ms=Math.max(0,S.dailyAt-Date.now()),h=Math.floor(ms/3.6e6),m=Math.floor(ms%3.6e6/6e4);return h+" ч "+m+" мин"};
+const dailyCard=()=>`<div class="card glow" style="--rc:#f5b301"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div><span class="ttl">${ic("gift")}Ежедневный бонус</span><div class="mut" style="margin-top:2px">${dailyReady()?`Сегодня +${num(S.daily.amt)} ₽ · серия ${S.daily.streak} дн.`:`Следующий через ${dLeft()} · серия ${S.daily.streak} дн.`}</div></div><button class="btn" data-a="daily" ${dailyReady()?"":"disabled"}>Забрать</button></div></div>`;
+const refCard=()=>{const r=S.ref||{};return `<div class="card"><span class="ttl">${ic("users")}Пригласи друзей</span><div class="mut" style="margin:2px 0 10px">Ты получаешь +${num(r.bonus||0)} ₽, друг +${num(r.bonusNew||0)} ₽ за каждого нового игрока по твоей ссылке.</div><input readonly value="${esc(r.link)}" onclick="this.select()"><div class="acts"><button class="btn" data-a="copyref">${ic("copy",16)}Копировать</button><button class="btn g" data-a="shareref">${ic("send",16)}Поделиться</button></div><div class="mut" style="margin-top:10px">Приглашено: ${r.n||0} · заработано ${num(r.earn||0)} ₽</div></div>`};
+const packsCard=()=>`<div class="card"><span class="ttl">${starIco(18)}Купить рубли за Stars</span><div class="mut" style="margin:2px 0 10px">Оплата звёздами Telegram. Чем больше пакет, тем выгоднее.</div><div class="packs">${(S.packs||[]).map(k=>{const bn=Math.round((k.coins/k.stars/1600-1)*100);return `<button class="pack" data-a="stars|${k.id}">${bn>0?`<span class="bn">+${bn}%</span>`:""}<b>${starIco(15)}${k.stars}</b><small>${num(k.coins)} ₽</small></button>`}).join("")}</div></div>`;
 const V={
 find(){const f=S.found||[];
 const sum=f.filter(p=>!p.l).reduce((s,p)=>s+sp(p),0);
@@ -288,18 +309,18 @@ else if(f.length)res=`<div class="card">${f.slice(0,40).map(p=>`<div class="row 
 else res=`<p class="mut" style="text-align:center">Выбери x1, x5 или x10 и крути.${S.admin?"<br>Ты админ: крутки бесплатные.":""}</p>`;
 const n=S.mult,cost=S.cost1*n,can=S.admin||S.coins>=cost;
 const sk=m=>ic(m===1?"sp1":m===5?"sp5":"sp10",16);
-return `<h2>Крутка</h2><div class="ctl"><div><small>КОЛИЧЕСТВО</small>${S.admin?`<input id="cnt" type="number" min="1" max="500" placeholder="своё, до 500" value="${[1,5,10].includes(S.mult)?"":S.mult}" style="margin:0 0 6px;padding:7px 9px;font-size:13px">`:""}<div class="seg">${[1,5,10].map(m=>`<button class="${S.mult===m?"on":""}" data-a="mult|${m}">x${m}</button>`).join("")}</div></div><div><small>СКОРОСТЬ</small><div class="seg">${[1,5,10].map(m=>`<button class="${S.spd===m?"on":""}" data-a="spd|${m}">${sk(m)}x${m}</button>`).join("")}</div></div></div>${reelHtml()}
+return `<h2>Крутка</h2>${dailyReady()?dailyCard():""}<div class="ctl"><div><small>КОЛИЧЕСТВО</small>${S.admin?`<input id="cnt" type="number" min="1" max="500" placeholder="своё, до 500" value="${[1,5,10].includes(S.mult)?"":S.mult}" style="margin:0 0 6px;padding:7px 9px;font-size:13px">`:""}<div class="seg">${[1,5,10].map(m=>`<button class="${S.mult===m?"on":""}" data-a="mult|${m}">x${m}</button>`).join("")}</div></div><div><small>СКОРОСТЬ</small><div class="seg">${[1,5,10].map(m=>`<button class="${S.spd===m?"on":""}" data-a="spd|${m}">${sk(m)}x${m}</button>`).join("")}</div></div></div>${reelHtml()}
 <button class="btn go" data-a="spin|${n}" ${can&&!S.rev?"":"disabled"}>${ic("dice",20)}Крутить x${n} · ${S.admin?"бесплатно":num(cost)+" ₽"}</button>
 <div class="card" style="display:flex;justify-content:space-between;align-items:center"><span class="ttl">${ic("flame")}Лимитка iPhone Duo · ${num(ALL.duo.price)} ₽</span><b>${S.duoLeft}/${S.duoMax}</b></div>
 ${res}
 ${!S.rev&&sum>0?`<button class="btn" style="width:100%;padding:13px;margin:4px 0 12px" data-a="sellspin">${ic("cash")}Продать всё выпавшее (+${num(sum)} ₽)</button>`:""}
 ${S.admin?`<button class="btn g" style="width:100%" data-a="adm">${ic("crown")}+100 000 ₽ себе</button>`:""}`},
-shop(){return `<h2>Магазин</h2>${seg("sh",S.sh)}<div class="card">${list(S.sh,1).map(p=>`<div class="row">${art(p)}<div class="n"><b>${p.name}</b><small>${num(p.price)} ₽</small></div><button class="btn" data-a="buy|${p.id}" ${S.coins<p.price?"disabled":""}>Купить</button></div>`).join("")}</div>`},
+shop(){return `<h2>Магазин</h2>${packsCard()}${seg("sh",S.sh)}<div class="card">${list(S.sh,1).map(p=>`<div class="row">${art(p)}<div class="n"><b>${p.name}</b><small>${num(p.price)} ₽</small></div><button class="btn" data-a="buy|${p.id}" ${S.coins<p.price?"disabled":""}>Купить</button></div>`).join("")}</div>`},
 inv(){const o=list(S.iv).filter(p=>S.inv[p.id]>0),tot=o.reduce((s,p)=>s+sp(p)*S.inv[p.id],0);
 if(S.ivsub==="safe")return `<h2>Инвентарь</h2>${ivSub()}${safeCard()}`;
 return `<h2>Инвентарь</h2>${ivSub()}${seg("iv",S.iv)}`+(o.length?`<div class="card">${o.map(p=>`<div class="row">${art(p)}<div class="n"><b>${p.name} × ${S.inv[p.id]}</b><small>Продажа ${num(sp(p))} ₽</small></div><button class="btn g" data-a="safein|${p.id}" aria-label="В сейф">${ic("lock",16)}</button><button class="btn g" data-a="sell|${p.id}">Продать</button></div>`).join("")}</div><button class="btn" style="width:100%;padding:13px" data-a="sellall|${S.iv}">Продать всё за ${num(tot)} ₽</button>`:`<div class="card mut">Здесь пока пусто.</div>`)},
 bank(){const cv=Object.keys(CR).reduce((s,k)=>s+(S.cr[k]||0)*cp(k),0);
-return `<h2>Банк</h2><div class="card"><div class="mut">На счёте · +0,5% в час</div><div class="big">${num(S.bank)} ₽</div><div class="acts" style="margin-top:12px"><button class="btn" data-a="dep|10000">${ic("plus",15)}10 000</button><button class="btn" data-a="dep|all">Внести всё</button><button class="btn g" data-a="wd|10000">${ic("minus",15)}10 000</button><button class="btn g" data-a="wd|all">Снять всё</button></div></div>
+return `<h2>Банк</h2><div class="card"><div class="mut">На счёте · +${(S.rate*100).toLocaleString("ru-RU",{maximumFractionDigits:2})}% в час</div><div class="big">${num(S.bank)} ₽</div><div class="acts" style="margin-top:12px"><button class="btn" data-a="dep|10000">${ic("plus",15)}10 000</button><button class="btn" data-a="dep|all">Внести всё</button><button class="btn g" data-a="wd|10000">${ic("minus",15)}10 000</button><button class="btn g" data-a="wd|all">Снять всё</button></div></div>
 <div class="card"><span class="ttl">${ic("send")}Перевод игроку</span><div class="mut" style="margin:2px 0 10px">С денег на руках. Игрок должен уже играть в бота.</div><input id="pto" placeholder="@username или ID"><input id="pam" type="number" min="1" placeholder="Сумма, ₽"><button class="btn" data-a="pay">Перевести</button></div>
 <h2 style="font-size:18px">Крипта <span class="mut" style="font:500 13px system-ui,sans-serif">≈ ${num(cv)} ₽ · комиссия 2%</span></h2><div class="card">${Object.keys(CR).map(k=>{const p=cp(k),pr=cp(k,Date.now()-3e5),h=S.cr[k]||0;return `<div class="row"><div class="n"><b>${cico(k)}${k} <span class="${p>=pr?"up":"dn"}">${ic(p>=pr?"up":"down",14)}${p}</span></b><small>у тебя ${h.toFixed(4)}</small></div><button class="btn" data-a="cb|${k}|10000">Купить 10 000</button><button class="btn g" data-a="cs|${k}">Продать</button></div>`}).join("")}</div>`},
 market(){const mine=Object.keys(S.inv).filter(k=>S.inv[k]>0&&ALL[k]&&!ALL[k].acc);
@@ -315,14 +336,13 @@ profile(){
  if(S.psub==="top"){
   const t=S.top;
   if(!t)return `<h2>Профиль</h2>${subs}<p class="mut">Загружаю топы…</p>`;
-  const coll=S.tsub==="coll";
-  const list=coll?t.coll:t.rich;
-  const rows=list.map((r,i)=>`<div class="row"><b style="width:28px;color:var(--mut)">${i+1}</b><div class="n"><b>${r.n}${r.me?` <span class="tag">ты</span>`:""}</b><small>${coll?"лимитки, легенды и мифики":"капитал"}</small></div><b>${coll?num(r.c)+" шт.":num(r.v)+" ₽"}</b></div>`).join("");
-  const my=coll?t.me.coll:t.me.rich;
-  return `<h2>Профиль</h2>${subs}<div class="seg"><button class="${coll?"":"on"}" data-a="set|tsub|rich">${ic("wallet",16)}Богатейшие</button><button class="${coll?"on":""}" data-a="set|tsub|coll">${ic("gem",16)}Коллекционеры</button></div><div class="card">${rows||'<span class="mut">Пока пусто.</span>'}</div><p class="mut" style="text-align:center">${my?`Твоё место: #${my}`:"Тебя пока нет в этом топе"}</p>`;
+  const rows=t.rich.map((r,i)=>`<div class="row"><b style="width:28px;color:var(--mut)">${i+1}</b><div class="n"><b>${esc(r.n)}${r.me?` <span class="tag">ты</span>`:""}</b><small>капитал</small></div><b>${num(r.v)} ₽</b></div>`).join("");
+  const my=t.me.rich;
+  return `<h2>Профиль</h2>${subs}<div class="card">${rows||'<span class="mut">Пока пусто.</span>'}</div><p class="mut" style="text-align:center">${my?`Твоё место: #${my}`:"Тебя пока нет в топе"}</p>`;
  }
  const best=inv.filter(k=>!ALL[k].acc).sort((a,b)=>ALL[b].price-ALL[a].price)[0];
- return `<h2>Профиль</h2>${subs}<div class="card"><div class="mut">Итого</div><div class="big">${num(total)} ₽</div></div>`+
+ const me=S.me||{};
+ return `<h2>Профиль</h2>${subs}<div class="card"><div class="row" style="border:0;padding:0">${av(me,64)}<div class="n"><div class="big" style="font-size:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(me.name)}</div><div class="mut">${me.un?"@"+esc(me.un):"без username"} · ID ${esc(me.id)}</div></div></div></div><div class="card"><div class="mut">Итого</div><div class="big">${num(total)} ₽</div></div>`+dailyCard()+refCard()+
   `<div class="card">${[["wallet","На руках",S.coins],["bank","В банке",S.bank],["bolt","В крипте",crVal],["box","Вещи (по продаже)",invVal]].map(([i,t,v])=>`<div class="row"><div class="n"><span class="ttl">${ic(i)}${t}</span></div><b>${num(v)} ₽</b></div>`).join("")}</div>`+
   (best?`<div class="card glow" style="--rc:${RC[rar(ALL[best])[0]][0]}"><div class="mut" style="margin-bottom:8px">Самая дорогая вещь</div><div class="row" style="border:0;padding:0">${art(ALL[best])}<div class="n"><b>${ALL[best].name}</b>${tag(ALL[best])}</div></div></div>`:"")+
   `<div class="card"><span class="ttl">${ic("ticket")}Промокод</span><div class="mut" style="margin:2px 0 10px">Введи код и получи бонус. Каждый код работает один раз.</div><input id="promo" placeholder="Код, например SUMMER"><button class="btn" data-a="promo">Активировать</button></div>`+`<div class="card"><span class="ttl">${ic("mega")}Канал игры</span><div class="mut" style="margin:2px 0 10px">Новости, розыгрыши и лимитки первыми.</div><button class="btn" data-a="chan">Открыть t.me/iPhoneNewsGame</button></div>`+(S.admin?`<div class="card"><span class="ttl">${ic("crown")}Админ-панель</span><div class="mut" style="margin:2px 0 10px">У тебя повышенные шансы на эпики, легендарки и мифики.</div>
@@ -339,6 +359,7 @@ const TABS=[["find","dice","Крутка"],["shop","store","Магазин"],["i
 $("brand").innerHTML=ic("phone",22)+"Найди айфон";
 $("profbtn").innerHTML=ic("user",18);
 function render(){
+  $("profbtn").innerHTML=S.ready&&S.me?av(S.me,30):ic("user",18);
   $("bal").innerHTML=S.ready?ic("wallet",16)+num(S.coins)+" ₽":"";
   if(S.locked){$("tabs").innerHTML="";$("view").innerHTML=`<div class="card"><h2>Открой через Telegram</h2><p class="mut">Приложение работает только внутри бота. Нажми «Играть» рядом со скрепкой в чате.</p></div>`;return}
   if(!S.ready){$("view").innerHTML=`<p class="mut">Загрузка…</p>`;return}
@@ -351,10 +372,11 @@ async function api(a,x,y,z,w){
     const r=await fetch("/api",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({initData:TG?TG.initData:"",a,x,y,z,w,t:S.tab})});
     if(r.status===401){S.locked=1}else{
       const d=await r.json();
-      if(d.state){Object.assign(S,d.state);S.skew=d.state.now-Date.now();S.ready=1}
+      if(d.state){Object.assign(S,d.state);S.skew=d.state.now-Date.now();S.ready=1;S.dailyAt=Date.now()+((S.daily&&S.daily.wait)||0)}
       if(d.top)S.top=d.top;if(d.found){S.found=d.found.map(id=>ALL[id]);S.rev={list:S.found,k:0};startReveal()}
       if(a==="sellspin"){S.found=null;S.rev=null}
-      if(d.toast)toast(d.toast)}
+      if(d.toast)toast(d.toast);
+      if(d.invoice){if(TG&&TG.openInvoice)TG.openInvoice(d.invoice,st=>{if(st==="paid"){toast("Оплата прошла");setTimeout(()=>api("state"),1500);setTimeout(()=>api("state"),4500)}else if(st==="failed")toast("Оплата не прошла")});else toast("Открой игру через Telegram")}}
   }catch(e){toast("Нет связи с сервером")}
   busy=0;render()}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-a]");if(!t)return;const[a,x,y]=t.dataset.a.split("|");
@@ -370,6 +392,8 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-a]");if(!t
   else if(a==="admgive")api("admgive",$("atg").value.trim(),$("aam").value);
   else if(a==="admpromo")api("admpromo",$("acd").value.trim(),$("asm").value,$("aus").value,$("ady").value);
   else if(a==="pay")api("pay",$("pto").value.trim(),$("pam").value);
+  else if(a==="copyref"){const l=S.ref&&S.ref.link;if(l){(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(l):Promise.reject()).then(()=>toast("Ссылка скопирована")).catch(()=>{const i=document.querySelector("input[readonly]");if(i){i.select();try{document.execCommand("copy");toast("Ссылка скопирована")}catch(e){toast("Выдели и скопируй ссылку")}}})}}
+  else if(a==="shareref"){const l=S.ref&&S.ref.link;if(l){const u="https://t.me/share/url?url="+encodeURIComponent(l)+"&text="+encodeURIComponent("Крути айфоны, копи рубли и торгуй в игре «Найди айфон»!");TG&&TG.openTelegramLink?TG.openTelegramLink(u):window.open(u,"_blank")}}
   else api(a,x,y)});
 document.addEventListener('gesturestart',e=>e.preventDefault());document.addEventListener('gesturechange',e=>e.preventDefault());let lt=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lt<350&&!e.target.closest('button,input,select,textarea'))e.preventDefault();lt=n},{passive:false});
 document.addEventListener("change",e=>{if(e.target.id==="cnt"){const v=Math.floor(+e.target.value);if(v>=1){S.mult=Math.min(500,v);render()}}});

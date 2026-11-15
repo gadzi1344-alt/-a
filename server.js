@@ -88,7 +88,7 @@ class FileKV {
 }
 
 const DB = new FileKV(DATA_FILE);
-const env = { BOT_TOKEN, WEBHOOK_SECRET, ADMIN_USERNAME: process.env.ADMIN_USERNAME || "alvmv", ADMIN_ID: process.env.ADMIN_ID || "", DB };
+const env = { BOT_TOKEN, WEBHOOK_SECRET, ADMIN_USERNAME: process.env.ADMIN_USERNAME || "alvmv", ADMIN_ID: process.env.ADMIN_ID || "", BOT_USERNAME: process.env.BOT_USERNAME || "iPhonesAppBot", DB };
 
 // ---------- HTTP ----------
 const pending = new Set();

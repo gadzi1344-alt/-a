@@ -6,11 +6,11 @@ import { readFileSync, readdirSync } from "node:fs";
 
 const APP_TEMPLATE = readFileSync(new URL("./app.html", import.meta.url), "utf8");
 
-const START_COINS = 50000;
-const SELL_RATE = 0.5; // продажа системе за 50% цены
+const START_COINS = 150000; // стартовый баланс
+const SELL_RATE = 0.55; // продажа системе за 55% цены
 const PAGE_SIZE = 8;
 
-const BANK_RATE_PER_HOUR = 0.005; // 0.5% в час на вклад
+const BANK_RATE_PER_HOUR = 0.006; // 0.6% в час на вклад
 const BANK_MAX_HOURS = 24; // проценты копятся максимум за 24 часа между заходами
 const CRYPTO_FEE = 0.02; // комиссия 2% при покупке и продаже крипты
 const MARKET_FEE = 0.05; // комиссия маркета 5% с продавца
@@ -20,6 +20,32 @@ const MULTS = [1, 5, 10];
 const ADMIN_MAX_SPIN = 500; // админ может крутить сколько угодно, но не больше этого за раз
 const SAFE_SIZE = 10; // сейф: сколько вещей можно положить
 const SPEEDS = [1, 5, 10]; // скорость анимации: x1 / x5 / x10
+
+// Рефералы: ссылка t.me/<бот>?start=ref_<id>
+const REF_INVITER = 40000; // тому, кто пригласил
+const REF_NEW = 25000; // новому игроку
+const REF_MAX = 100; // за сколько друзей максимум платим бонус
+
+// Ежедневный бонус: растёт с каждым днём подряд до 7-го
+const DAILY_BASE = 10000;
+const DAILY_STEP = 3000;
+const DAILY_MAX_STREAK = 7;
+const DAILY_CD = 20 * 3600 * 1000; // можно брать раз в 20 часов
+const DAILY_KEEP = 48 * 3600 * 1000; // серия сгорает, если пропустить больше 48 часов
+
+// Покупка рублей за Telegram Stars (XTR): [id, звёзд, рублей]
+const PACKS = [
+  ["p1", 25, 40000],
+  ["p2", 50, 90000],
+  ["p3", 100, 200000],
+  ["p4", 250, 550000],
+  ["p5", 500, 1200000],
+  ["p6", 1000, 2600000],
+].map(([id, stars, coins]) => ({ id, stars, coins }));
+const PACK_BY_ID = Object.fromEntries(PACKS.map((p) => [p.id, p]));
+const PACK_RE = /^pack:(\w+):(\d+)$/;
+const botName = (env) => env.BOT_USERNAME || "iPhonesAppBot";
+const pctText = (x) => String(Math.round(x * 10000) / 100).replace(".", ",");
 
 const DEFAULT_ADMIN = "alvmv";
 
@@ -531,7 +557,7 @@ function bankView(u) {
   const perHour = Math.floor(u.bank * BANK_RATE_PER_HOUR);
   const text =
     `🏦 Банк\n\n💰 На руках: ${num(u.coins)} ₽\n🏦 На счёте: ${num(u.bank)} ₽\n` +
-    `📈 Доход: +0,5% в час (≈ ${num(perHour)} ₽ в час)\n` +
+    `📈 Доход: +${pctText(BANK_RATE_PER_HOUR)}% в час (≈ ${num(perHour)} ₽ в час)\n` +
     `Проценты копятся максимум за ${BANK_MAX_HOURS} ч между заходами.`;
   return {
     text,
@@ -730,12 +756,55 @@ const OPEN_TEXT =
   "📱 Игра открывается кнопкой <b>«Играть»</b> рядом со скрепкой 📎\n\n" +
   `📢 <a href="${CHANNEL_URL}">Канал игры</a>`;
 
+// реферал: бонус обоим, только если игрок пришёл по ссылке впервые
+async function applyReferral(env, u, userId, existed, payload) {
+  const m = /^ref_(\d{3,15})$/.exec(payload || "");
+  if (!m || existed || u.ref) return "";
+  const rid = m[1];
+  if (rid === String(userId)) return "";
+  const r = await env.DB.get(`u:${rid}`, "json");
+  if (!r) return "";
+  u.ref = rid;
+  u.coins += REF_NEW;
+  if ((r.refs || 0) < REF_MAX) {
+    r.refs = (r.refs || 0) + 1;
+    r.refEarn = (r.refEarn || 0) + REF_INVITER;
+    r.coins = (r.coins || 0) + REF_INVITER;
+    await saveUser(env, rid, r);
+    await tg(env, "sendMessage", { chat_id: rid, text: `🎉 По твоей ссылке пришёл новый игрок! +${num(REF_INVITER)} ₽` }).catch(() => {});
+  }
+  return `🎁 Бонус за приглашение: +${num(REF_NEW)} ₽`;
+}
+
+// успешная оплата Stars: начисляем рубли один раз на платёж
+async function onPayment(env, msg) {
+  const pay = msg.successful_payment;
+  const say = (t) => tg(env, "sendMessage", { chat_id: msg.chat.id, text: t }).catch(() => {});
+  if (!pay || pay.currency !== "XTR") return;
+  const key = `pay:${pay.telegram_payment_charge_id}`;
+  if (await env.DB.get(key)) return;
+  const m = PACK_RE.exec(pay.invoice_payload || "");
+  const pack = m && PACK_BY_ID[m[1]];
+  if (!pack || String(msg.from.id) !== m[2] || pay.total_amount !== pack.stars) {
+    console.error("bad payment", pay);
+    return say("Оплата получена, но рубли не начислились автоматически. Напиши в поддержку: /paysupport");
+  }
+  await env.DB.put(key, JSON.stringify({ u: msg.from.id, p: pack.id, t: Date.now() }));
+  const u = await getUser(env, msg.from.id);
+  u.coins += pack.coins;
+  u.stars = (u.stars || 0) + pack.stars;
+  await saveUser(env, msg.from.id, u);
+  return say(`✅ Оплата прошла: +${num(pack.coins)} ₽. Баланс: ${num(u.coins)} ₽`);
+}
+
 async function onMessage(env, msg) {
+  if (msg.successful_payment) return onPayment(env, msg);
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   const text = (msg.text || "").trim();
   const admin = isAdmin(env, msg.from);
   const kb = mainKeyboard(admin);
+  const existed = (await env.DB.get(`u:${userId}`)) !== null;
   const u = await getUser(env, userId);
   let dirty = await syncName(env, msg.from, u);
 
@@ -745,12 +814,19 @@ async function onMessage(env, msg) {
   }
   if (dirty) await saveUser(env, userId, u);
 
-  if (text === "/start") {
+  if (text === "/paysupport") {
+    return tg(env, "sendMessage", { chat_id: chatId, text: "Если оплата Stars не начислилась, напиши администратору @alvmv и приложи скрин оплаты." });
+  }
+
+  if (text === "/start" || text.startsWith("/start ")) {
     await setMenu(env, chatId);
+    const note = await applyReferral(env, u, userId, existed, text.split(/\s+/)[1]);
     if (!u.welcomed) {
       u.welcomed = true;
       await saveUser(env, userId, u);
-      return tg(env, "sendMessage", { chat_id: chatId, text: WELCOME_TEXT, parse_mode: "HTML", disable_web_page_preview: true });
+      await tg(env, "sendMessage", { chat_id: chatId, text: WELCOME_TEXT, parse_mode: "HTML", disable_web_page_preview: true });
+      if (note) await tg(env, "sendMessage", { chat_id: chatId, text: note });
+      return;
     }
     await saveUser(env, userId, u);
     return tg(env, "sendMessage", { chat_id: chatId, text: OPEN_TEXT, parse_mode: "HTML", disable_web_page_preview: true });
@@ -1065,7 +1141,17 @@ async function apiState(env, uid, u, admin, wantMarket = false) {
       if (p) promos.push({ code: k.name.slice(6), c: p.c, left: p.left, exp: p.exp || 0 });
     });
   }
-  return { coins: u.coins, bank: u.bank, inv: u.inv, cr: u.crypto, last: u.last, now: Date.now(), admin: admin ? 1 : 0, mk, duoLeft, duoMax: duo ? duo.limit : 0, cost1: SPIN_COST, promos, safe: u.safe || {} };
+  const now = Date.now();
+  const dd = u.daily || { t: 0, streak: 0 };
+  const dWait = Math.max(0, dd.t + DAILY_CD - now);
+  const nextStreak = now - dd.t < DAILY_KEEP ? Math.min(dd.streak + 1, DAILY_MAX_STREAK) : 1;
+  return {
+    coins: u.coins, bank: u.bank, inv: u.inv, cr: u.crypto, last: u.last, now, admin: admin ? 1 : 0, mk, duoLeft, duoMax: duo ? duo.limit : 0, cost1: SPIN_COST, promos, safe: u.safe || {},
+    sell: SELL_RATE, rate: BANK_RATE_PER_HOUR, packs: PACKS,
+    me: { name: u.nm || (u.un ? "@" + u.un : "Игрок"), un: u.un || "", photo: u.ph || "", id: String(uid) },
+    ref: { link: `https://t.me/${botName(env)}?start=ref_${uid}`, n: u.refs || 0, earn: u.refEarn || 0, bonus: REF_INVITER, bonusNew: REF_NEW },
+    daily: { wait: dWait, streak: dd.streak || 0, amt: DAILY_BASE + (nextStreak - 1) * DAILY_STEP },
+  };
 }
 
 // ---------- Топы ----------
@@ -1104,13 +1190,12 @@ async function playerRows(env) {
 async function topLists(env, uid) {
   const rows = (await playerRows(env)).map((r) => ({ ...r, me: String(r.id) === String(uid) }));
   const rich = [...rows].sort((x, y) => y.v - x.v);
-  const coll = rows.filter((r) => r.c > 0).sort((x, y) => y.c - x.c || y.v - x.v);
   const rankOf = (list) => {
     const i = list.findIndex((r) => r.me);
     return i >= 0 ? i + 1 : null;
   };
   const top = (list) => list.slice(0, 20).map(({ n, v, c, me }) => ({ n, v, c, me }));
-  return { rich: top(rich), coll: top(coll), me: { rich: rankOf(rich), coll: rankOf(coll) } };
+  return { rich: top(rich), me: { rich: rankOf(rich) } };
 }
 
 async function handleApi(env, request) {
@@ -1126,8 +1211,11 @@ async function handleApi(env, request) {
   const admin = isAdmin(env, from);
   const u = await getUser(env, uid);
   await syncName(env, from, u);
+  if (from.first_name) u.nm = [from.first_name, from.last_name].filter(Boolean).join(" ").slice(0, 40);
+  if (from.photo_url) u.ph = String(from.photo_url);
   accrue(u);
   const { a, x, y, z, w } = body;
+  let invoice = null;
   const amtY = Math.floor(Number(y));
   let toast = "";
   let found = null;
@@ -1293,6 +1381,35 @@ async function handleApi(env, request) {
         toast = `Из сейфа: ${ITEM_BY_ID[id].name} × ${take}`;
       }
     }
+  } else if (a === "daily") {
+    const now = Date.now();
+    const d = u.daily || { t: 0, streak: 0 };
+    if (now - d.t < DAILY_CD) toast = "Бонус уже получен, зайди позже";
+    else {
+      const streak = now - d.t < DAILY_KEEP ? Math.min(d.streak + 1, DAILY_MAX_STREAK) : 1;
+      const amt = DAILY_BASE + (streak - 1) * DAILY_STEP;
+      u.coins += amt;
+      u.daily = { t: now, streak };
+      toast = `+${num(amt)} ₽ ежедневный бонус (день ${streak})`;
+    }
+  } else if (a === "stars") {
+    const pack = PACK_BY_ID[x];
+    if (!pack) toast = "Такого пакета нет";
+    else {
+      const r = await tg(env, "createInvoiceLink", {
+        title: `${num(pack.coins)} ₽ в игре`,
+        description: "Игровая валюта для «Найди айфон»",
+        payload: `pack:${pack.id}:${uid}`,
+        provider_token: "",
+        currency: "XTR",
+        prices: [{ label: "Рубли", amount: pack.stars }],
+      });
+      if (r && r.ok) invoice = r.result;
+      else {
+        console.error("invoice failed", r);
+        toast = "Не удалось создать счёт, попробуй позже";
+      }
+    }
   } else if (a === "promo") {
     const code = String(x || "").trim().toUpperCase();
     const p = /^[A-Z0-9]{3,20}$/.test(code) ? await env.DB.get(`promo:${code}`, "json") : null;
@@ -1371,7 +1488,7 @@ async function handleApi(env, request) {
 
   const extra = a === "top" ? { top: await topLists(env, uid) } : {};
   await saveUser(env, uid, u);
-  return jsonRes({ toast, found, ...extra, state: await apiState(env, uid, u, admin, body.t === "market") });
+  return jsonRes({ toast, found, invoice, ...extra, state: await apiState(env, uid, u, admin, body.t === "market") });
 }
 
 // Реальные фото: кладёшь файл в папку img с именем id модели (например 17pm.png, 14p.webp, acc_apmax.jpg)
@@ -1434,7 +1551,7 @@ export default {
       const res = await tg(env, "setWebhook", {
         url: `${url.origin}/webhook`,
         secret_token: env.WEBHOOK_SECRET,
-        allowed_updates: ["message", "callback_query"],
+        allowed_updates: ["message", "callback_query", "pre_checkout_query"],
       });
       const menu = await tg(env, "setChatMenuButton", {
         menu_button: { type: "web_app", text: "Играть", web_app: { url: `${url.origin}/app` } },
@@ -1451,6 +1568,13 @@ export default {
         try {
           if (update.message) await onMessage(env, update.message);
           else if (update.callback_query) await onCallback(env, update.callback_query);
+          else if (update.pre_checkout_query) {
+            const q = update.pre_checkout_query;
+            const m = PACK_RE.exec(q.invoice_payload || "");
+            const pack = m && PACK_BY_ID[m[1]];
+            const ok = !!pack && q.currency === "XTR" && q.total_amount === pack.stars && String(q.from.id) === m[2];
+            await tg(env, "answerPreCheckoutQuery", { pre_checkout_query_id: q.id, ok, ...(ok ? {} : { error_message: "Товар недоступен" }) });
+          }
         } catch (e) {
           console.error(e);
         }
